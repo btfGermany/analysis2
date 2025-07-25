@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="de" class="light-mode">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTF Media Schreibtisch-Analyse</title>
+  <link href="/static/dist/output.css" rel="stylesheet">
+  <script>
+    function setTheme(theme) {
+      document.body.classList.remove('dark-mode', 'light-mode');
+      document.body.classList.add(theme+'-mode');
+      localStorage.setItem('theme', theme);
+    }
+    window.onload = function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      setTheme(theme);
+    }
+  </script>
+</head>
+<body class="light-mode min-h-screen flex flex-col justify-center items-center" style="background: var(--bg-primary); color: var(--text-primary);">
+  <div class="container mx-auto px-6">
+    <div class="glass p-8 mt-12 mb-8">
+      <h1 class="text-4xl font-bold mb-6">Schreibtisch-Analyse Upload</h1>
+      <form action="/upload" method="post" enctype="multipart/form-data" class="mb-6">
+        <input type="file" name="file" accept=".zip" class="mb-4 w-full" required>
+        <button type="submit" class="transition-custom">Upload starten</button>
+      </form>
+      <div class="flex gap-4 mb-4">
+        <button onclick="setTheme('light')" class="transition-custom">Light</button>
+        <button onclick="setTheme('dark')" class="transition-custom">Dark</button>
+      </div>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="mb-4">
+            {% for message in messages %}
+              <div class="glass p-4 mb-2">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <p class="opacity-60 text-sm">Laden Sie ein ZIP mit CSV und Screenshots hoch. Nach Upload erhalten Sie einen Link zu Ihrem Schreibtisch.</p>
+    </div>
+  </div>
+</body>
+</html>

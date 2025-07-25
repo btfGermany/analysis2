@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de" class="light-mode">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schreibtisch geschützt</title>
+  <link href="/static/dist/output.css" rel="stylesheet">
+  <script>
+    function setTheme(theme) {
+      document.body.classList.remove('dark-mode', 'light-mode');
+      document.body.classList.add(theme+'-mode');
+      localStorage.setItem('theme', theme);
+    }
+    window.onload = function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      setTheme(theme);
+    }
+  </script>
+</head>
+<body class="light-mode min-h-screen flex flex-col justify-center items-center" style="background: var(--bg-primary); color: var(--text-primary);">
+  <div class="container mx-auto px-6">
+    <div class="glass p-8 mt-12 mb-8 max-w-md mx-auto">
+      <h1 class="text-3xl font-bold mb-6">Passwort erforderlich</h1>
+      <form action="" method="post" class="mb-6">
+        <input type="password" name="password" placeholder="Passwort" class="mb-4 w-full" required>
+        <button type="submit" class="transition-custom">Anmelden</button>
+      </form>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="mb-4">
+            {% for message in messages %}
+              <div class="glass p-4 mb-2">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <a href="/" class="opacity-60 text-sm">Zurück zum Upload</a>
+    </div>
+  </div>
+</body>
+</html>
