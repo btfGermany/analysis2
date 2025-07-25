@@ -18,3 +18,10 @@ class Screenshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     workspace_id = db.Column(db.String(36), db.ForeignKey('workspace.id'))
     filename = db.Column(db.String(256))
+
+class EmailTemplate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    workspace_id = db.Column(db.String(36), db.ForeignKey('workspace.id'))
+    name = db.Column(db.String(128))
+    subject = db.Column(db.String(256))
+    body = db.Column(db.Text)

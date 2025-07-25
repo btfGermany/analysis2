@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de" class="light-mode">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Mail-Vorlagen</title>
+  <link href="/static/dist/output.css" rel="stylesheet">
+  <script>
+    function setTheme(theme) {
+      document.body.classList.remove('dark-mode', 'light-mode');
+      document.body.classList.add(theme+'-mode');
+      localStorage.setItem('theme', theme);
+    }
+    window.onload = function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      setTheme(theme);
+    }
+  </script>
+</head>
+<body class="light-mode min-h-screen" style="background: var(--bg-primary); color: var(--text-primary);">
+  <div class="container mx-auto px-6">
+    <div class="glass p-8 mt-12 mb-8">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">E-Mail-Vorlagen</h1>
+        <div class="flex gap-4">
+          <button onclick="setTheme('light')" class="transition-custom">Light</button>
+          <button onclick="setTheme('dark')" class="transition-custom">Dark</button>
+        </div>
+      </div>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="mb-4">
+            {% for message in messages %}
+              <div class="glass p-4 mb-2">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <div class="mb-8">
+        <h2 class="text-xl font-medium mb-4">Neue Vorlage erstellen</h2>
+        <form action="" method="post" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <input type="text" name="name" placeholder="Name der Vorlage" required>
+          <input type="text" name="subject" placeholder="Betreff (z.B. 'Hallo {{name}}')" required>
+          <textarea name="body" placeholder="E-Mail-Text (nutze {{name}}, {{adresse}}, ...)
+Beispiel: Sehr geehrte/r {{name}}, ..." rows="6" class="md:col-span-2" required></textarea>
+          <button type="submit" class="transition-custom md:col-span-2">Vorlage speichern</button>
+        </form>
+      </div>
+      <div class="mb-8">
+        <h2 class="text-xl font-medium mb-4">Vorlagen verwalten</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {% for tpl in templates %}
+          <div class="glass p-4 flex flex-col gap-2">
+            <div class="font-bold">{{ tpl.name }}</div>
+            <div class="opacity-60 text-sm">Betreff: {{ tpl.subject }}</div>
+            <div class="flex gap-2 mt-2">
+              <a href="/workspace/{{ workspace.id }}/email_templates/{{ tpl.id }}/edit" class="transition-custom">Bearbeiten</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="mb-8">
+        <h2 class="text-xl font-medium mb-4">E-Mail generieren & senden</h2>
+        <form method="get" action="">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <select name="tpl_id" required>
+              <option value="">Vorlage wählen</option>
+              {% for tpl in templates %}
+                <option value="{{ tpl.id }}">{{ tpl.name }}</option>
+              {% endfor %}
+            </select>
+            <select name="record_id" required>
+              <option value="">Unternehmen wählen</option>
+              {% for record in workspace.records %}
+                <option value="{{ record.id }}">{{ record.data['name']|default('Firma #'+record.id|string) }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" formaction="/workspace/{{ workspace.id }}/email_templates/preview/" class="transition-custom">Vorschau</button>
+            <button type="submit" formaction="/workspace/{{ workspace.id }}/email_templates/send/" formmethod="post" class="transition-custom">Senden</button>
+          </div>
+        </form>
+      </div>
+      <a href="/workspace/{{ workspace.id }}" class="opacity-60 text-sm">Zurück zum Schreibtisch</a>
+    </div>
+  </div>
+</body>
+</html>
