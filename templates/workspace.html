@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de" class="light-mode">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schreibtisch {{ workspace.id }}</title>
+  <link href="/static/dist/output.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    function setTheme(theme) {
+      document.body.classList.remove('dark-mode', 'light-mode');
+      document.body.classList.add(theme+'-mode');
+      localStorage.setItem('theme', theme);
+    }
+    window.onload = function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      setTheme(theme);
+    }
+  </script>
+</head>
+<body class="light-mode min-h-screen" style="background: var(--bg-primary); color: var(--text-primary);">
+  <div class="container mx-auto px-6">
+    <div class="glass p-8 mt-12 mb-8">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Schreibtisch <span class="opacity-60">{{ workspace.id }}</span></h1>
+        <div class="flex gap-4">
+          <button onclick="setTheme('light')" class="transition-custom">Light</button>
+          <button onclick="setTheme('dark')" class="transition-custom">Dark</button>
+        </div>
+      </div>
+      {% if not workspace.password_hash %}
+      <form action="/workspace/{{ workspace.id }}/set_password" method="post" class="mb-6 flex gap-4 items-center">
+        <input type="password" name="password" placeholder="Passwort setzen (optional)" class="w-64">
+        <button type="submit" class="transition-custom">Passwort setzen</button>
+      </form>
+      {% endif %}
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="mb-4">
+            {% for message in messages %}
+              <div class="glass p-4 mb-2">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-8">
+        <div>
+          <h2 class="text-2xl font-medium mb-4">Daten</h2>
+          <input type="text" id="search" placeholder="Suche..." class="mb-4 w-full" oninput="filterTable()">
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-base">
+              <thead>
+                <tr>
+                  {% for col in columns %}
+                  <th class="px-4 py-2 font-bold">{{ col }}</th>
+                  {% endfor %}
+                  <th class="px-4 py-2">Aktion</th>
+                </tr>
+              </thead>
+              <tbody id="data-table">
+                {% for record in records %}
+                <tr>
+                  {% for col in columns %}
+                  <td class="px-4 py-2">{{ record.data[col] }}</td>
+                  {% endfor %}
+                  <td class="px-4 py-2">
+                    <button class="transition-custom" onclick="editRow({{ record.id }})">Bearbeiten</button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h2 class="text-2xl font-medium mb-4">Screenshots</h2>
+          <div class="grid grid-cols-2 gap-4">
+            {% for s in screenshots %}
+            <div class="glass card-hover p-2">
+              <img src="/workspaces/{{ workspace.id }}/screenshots/{{ s.filename }}" alt="Screenshot" class="rounded-lg w-full h-32 object-cover mb-2">
+              <div class="text-sm opacity-60">{{ s.filename }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="mb-8">
+        <h2 class="text-2xl font-medium mb-4">Graphische Auswertung</h2>
+        <canvas id="chart" height="120"></canvas>
+      </div>
+      <a href="/" class="opacity-60 text-sm">Zurück zum Upload</a>
+    </div>
+  </div>
+  <script>
+    function filterTable() {
+      const input = document.getElementById('search').value.toLowerCase();
+      const rows = document.querySelectorAll('#data-table tr');
+      rows.forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(input) ? '' : 'none';
+      });
+    }
+    // Beispiel-Graph (kann dynamisch erweitert werden)
+    window.onload = function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      setTheme(theme);
+      const ctx = document.getElementById('chart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: [{% for col in columns %}'{{ col }}',{% endfor %}],
+          datasets: [{
+            label: 'Beispiel-Datensatz',
+            data: [{% for record in records %}{{ record.data[columns[0]]|default(0) }},{% endfor %}],
+            backgroundColor: 'rgba(30,30,30,0.5)'
+          }]
+        },
+        options: {responsive: true}
+      });
+    }
+  </script>
+</body>
+</html>

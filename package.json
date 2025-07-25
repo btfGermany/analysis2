@@ -1,0 +1,23 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "## Übersicht Dieses Projekt ist ein moderner, sicherer Flask-Server zur Analyse und Verwaltung von Schreibtisch-Daten (CSV + Screenshots) mit responsivem Frontend nach BTF Media Design System Guide.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/btfGermany/analysis2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/btfGermany/analysis2/issues"
+  },
+  "homepage": "https://github.com/btfGermany/analysis2#readme",
+  "dependencies": {
+    "tailwindcss": "^4.1.11"
+  }
+}
