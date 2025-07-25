@@ -2,11 +2,13 @@ import os
 import uuid
 import zipfile
 import shutil
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, abort, Markup
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from werkzeug.utils import secure_filename
 import pandas as pd
+import smtplib
+from email.mime.text import MIMEText
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev')
@@ -20,6 +22,13 @@ db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
 from models import Workspace, Record, Screenshot
+
+class EmailTemplate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    workspace_id = db.Column(db.String(36), db.ForeignKey('workspace.id'))
+    name = db.Column(db.String(128))
+    subject = db.Column(db.String(256))
+    body = db.Column(db.Text)
 
 # Hilfsfunktionen
 
@@ -86,6 +95,7 @@ def workspace(workspace_id):
     if workspace.password_hash and 'auth_'+workspace_id not in session:
         return redirect(url_for('auth_workspace', workspace_id=workspace_id))
     records = Record.query.filter_by(workspace_id=workspace_id).all()
+    workspace.records = records  # für E-Mail-Templates
     screenshots = Screenshot.query.filter_by(workspace_id=workspace_id).all()
     columns = []
     if records:
@@ -122,6 +132,74 @@ def auth_workspace(workspace_id):
 def serve_screenshot(workspace_id, filename):
     workspace_dir = os.path.join(app.config['UPLOAD_FOLDER'], workspace_id)
     return send_from_directory(workspace_dir, filename)
+
+@app.route('/workspace/<workspace_id>/email_templates', methods=['GET', 'POST'])
+def email_templates(workspace_id):
+    workspace = Workspace.query.get_or_404(workspace_id)
+    if request.method == 'POST':
+        name = request.form['name']
+        subject = request.form['subject']
+        body = request.form['body']
+        tpl = EmailTemplate(workspace_id=workspace_id, name=name, subject=subject, body=body)
+        db.session.add(tpl)
+        db.session.commit()
+        flash('Vorlage gespeichert!')
+    templates = EmailTemplate.query.filter_by(workspace_id=workspace_id).all()
+    return render_template('email_templates.html', workspace=workspace, templates=templates)
+
+@app.route('/workspace/<workspace_id>/email_templates/<int:tpl_id>/edit', methods=['GET', 'POST'])
+def edit_email_template(workspace_id, tpl_id):
+    tpl = EmailTemplate.query.get_or_404(tpl_id)
+    if request.method == 'POST':
+        tpl.name = request.form['name']
+        tpl.subject = request.form['subject']
+        tpl.body = request.form['body']
+        db.session.commit()
+        flash('Vorlage aktualisiert!')
+        return redirect(url_for('email_templates', workspace_id=workspace_id))
+    return render_template('edit_email_template.html', workspace_id=workspace_id, tpl=tpl)
+
+@app.route('/workspace/<workspace_id>/email_templates/<int:tpl_id>/preview/<int:record_id>')
+def preview_email(workspace_id, tpl_id, record_id):
+    tpl = EmailTemplate.query.get_or_404(tpl_id)
+    record = Record.query.get_or_404(record_id)
+    subject, body = render_email_template(tpl.subject, tpl.body, record.data)
+    return render_template('preview_email.html', subject=subject, body=Markup(body))
+
+@app.route('/workspace/<workspace_id>/email_templates/<int:tpl_id>/send/<int:record_id>', methods=['POST'])
+def send_email(workspace_id, tpl_id, record_id):
+    tpl = EmailTemplate.query.get_or_404(tpl_id)
+    record = Record.query.get_or_404(record_id)
+    subject, body = render_email_template(tpl.subject, tpl.body, record.data)
+    to_email = record.data.get('email')
+    if not to_email:
+        flash('Keine E-Mail-Adresse im Datensatz!')
+        return redirect(url_for('email_templates', workspace_id=workspace_id))
+    # SMTP-Konfiguration (hier Dummy, produktiv ENV nutzen!)
+    smtp_host = os.environ.get('SMTP_HOST', 'localhost')
+    smtp_port = int(os.environ.get('SMTP_PORT', 25))
+    smtp_user = os.environ.get('SMTP_USER', '')
+    smtp_pass = os.environ.get('SMTP_PASS', '')
+    msg = MIMEText(body, 'html')
+    msg['Subject'] = subject
+    msg['From'] = smtp_user
+    msg['To'] = to_email
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            if smtp_user:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, [to_email], msg.as_string())
+        flash('E-Mail gesendet!')
+    except Exception as e:
+        flash(f'Fehler beim Senden: {e}')
+    return redirect(url_for('email_templates', workspace_id=workspace_id))
+
+def render_email_template(subject, body, data):
+    for key, value in data.items():
+        subject = subject.replace(f'{{{{{key}}}}}', str(value))
+        body = body.replace(f'{{{{{key}}}}}', str(value))
+    return subject, body
 
 # API für CRUD, Filter, Suche, Graphen etc. folgt in weiteren Schritten
 
